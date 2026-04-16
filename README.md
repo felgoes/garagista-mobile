@@ -122,3 +122,9 @@ Backend da API:
 ## Nome do produto
 
 Marca atual do app: `Garagista`
+
+
+## License
+
+All rights reserved.
+This project is proprietary and confidential.
