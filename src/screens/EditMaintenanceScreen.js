@@ -14,7 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { updateMaintenance } from '../services/maintenances';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
-import { maskKm, parseKm, maskCurrency, parseCurrency, currencyToRaw } from '../utils/masks';
+import {
+  maskKm,
+  parseKm,
+  maskCurrency,
+  parseCurrency,
+  currencyToRaw,
+  maskDate,
+  parseDate,
+  getDateInputState,
+} from '../utils/masks';
 
 const TYPES = [
   'Troca de Óleo',
@@ -33,13 +42,6 @@ function isoToDisplay(isoStr) {
   if (!isoStr) return '';
   const [y, m, d] = isoStr.split('T')[0].split('-');
   return `${d}/${m}/${y}`;
-}
-
-function parseDate(str) {
-  if (!str || !str.trim()) return null;
-  const [d, m, y] = str.split('/');
-  if (!d || !m || !y || y.length !== 4) return null;
-  return `${y}-${m}-${d}`;
 }
 
 function parseSelectedTypes(typeStr) {
@@ -68,6 +70,7 @@ export default function EditMaintenanceScreen({ route, navigation }) {
   const [costRaw, setCostRaw] = useState(currencyToRaw(maintenance.cost));
   const [description, setDescription] = useState(maintenance.description || '');
   const [saving, setSaving] = useState(false);
+  const dateState = getDateInputState(date);
 
   const initialDate = isoToDisplay(maintenance.date);
   const initialKm = String(maintenance.km);
@@ -109,7 +112,7 @@ export default function EditMaintenanceScreen({ route, navigation }) {
     }
     const parsedDate = parseDate(date);
     if (!parsedDate) {
-      Alert.alert('Atenção', 'Data inválida. Use o formato DD/MM/AAAA.');
+      Alert.alert('Atenção', 'Data inválida.\nUse o formato DD/MM/AAAA.');
       return;
     }
 
@@ -187,13 +190,22 @@ export default function EditMaintenanceScreen({ route, navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Data</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, dateState.invalid && styles.inputError]}
                 placeholder="DD/MM/AAAA"
                 value={date}
-                onChangeText={setDate}
+                onChangeText={(value) => setDate(maskDate(value))}
                 keyboardType="numeric"
                 maxLength={10}
               />
+              <Text
+                style={[
+                  styles.helperText,
+                  dateState.tone === 'error' && styles.helperTextError,
+                  dateState.tone === 'success' && styles.helperTextSuccess,
+                ]}
+              >
+                {dateState.message}
+              </Text>
             </View>
             <View style={{ width: 12 }} />
             <View style={{ flex: 1 }}>
@@ -282,6 +294,21 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 15,
     backgroundColor: '#fff',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 6,
+  },
+  helperTextError: {
+    color: '#dc2626',
+  },
+  helperTextSuccess: {
+    color: '#16a34a',
   },
   textarea: { height: 80 },
   row: { flexDirection: 'row', alignItems: 'flex-start' },

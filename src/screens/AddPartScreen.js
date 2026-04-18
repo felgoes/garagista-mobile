@@ -14,7 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createPart } from '../services/parts';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
-import { maskKm, parseKm, maskCurrency, parseCurrency, currencyToRaw } from '../utils/masks';
+import {
+  maskKm,
+  parseKm,
+  maskCurrency,
+  parseCurrency,
+  currencyToRaw,
+  maskDate,
+  parseDate,
+  getDateInputState,
+} from '../utils/masks';
 
 function todayStr() {
   const d = new Date();
@@ -23,13 +32,6 @@ function todayStr() {
     String(d.getMonth() + 1).padStart(2, '0'),
     d.getFullYear(),
   ].join('/');
-}
-
-function parseDate(str) {
-  if (!str.trim()) return null;
-  const [d, m, y] = str.split('/');
-  if (!d || !m || !y || y.length !== 4) return null;
-  return `${y}-${m}-${d}`;
 }
 
 const DEFAULT_INTERVALS = {
@@ -62,6 +64,8 @@ export default function AddPartScreen({ route, navigation }) {
   const [nextDate, setNextDate] = useState('');
   const [costRaw, setCostRaw] = useState('');
   const [saving, setSaving] = useState(false);
+  const installedDateState = getDateInputState(installedDate);
+  const nextDateState = getDateInputState(nextDate, { optional: true });
 
   const isDirty = !!(name || brand || costRaw);
   const { markSaved } = useUnsavedChanges(navigation, isDirty);
@@ -77,7 +81,7 @@ export default function AddPartScreen({ route, navigation }) {
     }
     const parsedDate = parseDate(installedDate);
     if (installedDate.trim() && !parsedDate) {
-      Alert.alert('Atenção', 'Data inválida. Use o formato DD/MM/AAAA.');
+      Alert.alert('Atenção', 'Data inválida.\nUse o formato DD/MM/AAAA.');
       return;
     }
 
@@ -171,13 +175,22 @@ export default function AddPartScreen({ route, navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Data</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, installedDateState.invalid && styles.inputError]}
                 placeholder="DD/MM/AAAA"
                 value={installedDate}
-                onChangeText={setInstalledDate}
+                onChangeText={(value) => setInstalledDate(maskDate(value))}
                 keyboardType="numeric"
                 maxLength={10}
               />
+              <Text
+                style={[
+                  styles.helperText,
+                  installedDateState.tone === 'error' && styles.helperTextError,
+                  installedDateState.tone === 'success' && styles.helperTextSuccess,
+                ]}
+              >
+                {installedDateState.message}
+              </Text>
             </View>
           </View>
 
@@ -198,13 +211,22 @@ export default function AddPartScreen({ route, navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Vence em (data)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, nextDateState.invalid && styles.inputError]}
                 placeholder="DD/MM/AAAA (opcional)"
                 value={nextDate}
-                onChangeText={setNextDate}
+                onChangeText={(value) => setNextDate(maskDate(value))}
                 keyboardType="numeric"
                 maxLength={10}
               />
+              <Text
+                style={[
+                  styles.helperText,
+                  nextDateState.tone === 'error' && styles.helperTextError,
+                  nextDateState.tone === 'success' && styles.helperTextSuccess,
+                ]}
+              >
+                {nextDateState.message}
+              </Text>
             </View>
             <View style={{ width: 12 }} />
             <View style={{ flex: 1 }}>
@@ -284,6 +306,21 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 15,
     backgroundColor: '#fff',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 6,
+  },
+  helperTextError: {
+    color: '#dc2626',
+  },
+  helperTextSuccess: {
+    color: '#16a34a',
   },
   row: {
     flexDirection: 'row',

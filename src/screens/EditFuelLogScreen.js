@@ -17,19 +17,13 @@ import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import {
   maskKm, parseKm,
   maskCurrency, parseCurrency, currencyToRaw,
-  maskLiters, parseLiters, litersToRaw,
+  maskLiters, parseLiters, litersToRaw, maskDate, parseDate, getDateInputState,
 } from '../utils/masks';
 
 function isoToDisplay(isoStr) {
   if (!isoStr) return '';
   const [y, m, d] = isoStr.split('T')[0].split('-');
   return `${d}/${m}/${y}`;
-}
-
-function parseDate(str) {
-  const [d, m, y] = str.split('/');
-  if (!d || !m || !y || y.length !== 4) return null;
-  return `${y}-${m}-${d}`;
 }
 
 function consumptionColor(kmL) {
@@ -67,6 +61,7 @@ export default function EditFuelLogScreen({ route, navigation }) {
   const kmNum = parseKm(kmRaw);
   const total = liters > 0 && price > 0 ? liters * price : 0;
   const consumption = fullTank && liters > 0 && log.consumption ? log.consumption : null;
+  const dateState = getDateInputState(date);
 
   const isDirty =
     date !== initialDate ||
@@ -92,7 +87,7 @@ export default function EditFuelLogScreen({ route, navigation }) {
     }
     const parsedDate = parseDate(date);
     if (!parsedDate) {
-      Alert.alert('Atenção', 'Data inválida. Use o formato DD/MM/AAAA.');
+      Alert.alert('Atenção', 'Data inválida.\nUse o formato DD/MM/AAAA.');
       return;
     }
 
@@ -235,13 +230,22 @@ export default function EditFuelLogScreen({ route, navigation }) {
           {/* Data */}
           <Text style={[styles.fieldLabel, { marginTop: 20 }]}>Data</Text>
           <TextInput
-            style={styles.dateInput}
+            style={[styles.dateInput, dateState.invalid && styles.dateInputError]}
             placeholder="DD/MM/AAAA"
             value={date}
-            onChangeText={setDate}
+            onChangeText={(value) => setDate(maskDate(value))}
             keyboardType="numeric"
             maxLength={10}
           />
+          <Text
+            style={[
+              styles.dateHelpText,
+              dateState.tone === 'error' && styles.dateHelpTextError,
+              dateState.tone === 'success' && styles.dateHelpTextSuccess,
+            ]}
+          >
+            {dateState.message}
+          </Text>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -349,6 +353,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: '#fff',
     color: '#475569',
+  },
+  dateInputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  dateHelpText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 8,
+  },
+  dateHelpTextError: {
+    color: '#dc2626',
+  },
+  dateHelpTextSuccess: {
+    color: '#16a34a',
   },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: '#eee', backgroundColor: '#f8fafc' },
   saveBtn: { padding: 16, borderRadius: 12, alignItems: 'center' },

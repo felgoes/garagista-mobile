@@ -14,7 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createFuelLog } from '../services/fuelLogs';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
-import { maskKm, parseKm, maskCurrency, parseCurrency, maskLiters, parseLiters } from '../utils/masks';
+import {
+  maskKm,
+  parseKm,
+  maskCurrency,
+  parseCurrency,
+  maskLiters,
+  parseLiters,
+  maskDate,
+  parseDate,
+  getDateInputState,
+} from '../utils/masks';
 
 function todayStr() {
   const d = new Date();
@@ -24,13 +34,6 @@ function todayStr() {
     d.getFullYear(),
   ].join('/');
 }
-
-function parseDate(str) {
-  const [d, m, y] = str.split('/');
-  if (!d || !m || !y || y.length !== 4) return null;
-  return `${y}-${m}-${d}`;
-}
-
 
 function consumptionColor(kmL) {
   if (kmL >= 20) return '#16a34a';
@@ -61,6 +64,7 @@ export default function AddFuelLogScreen({ route, navigation }) {
   const kmNum = parseInt(kmDriven, 10) || 0;
   const total = liters > 0 && price > 0 ? liters * price : 0;
   const consumption = fullTank && kmNum > 0 && liters > 0 ? kmNum / liters : null;
+  const dateState = getDateInputState(date);
 
   const isDirty = !!(kmDriven || litersRaw || priceRaw);
   const { markSaved } = useUnsavedChanges(navigation, isDirty);
@@ -80,7 +84,7 @@ export default function AddFuelLogScreen({ route, navigation }) {
     }
     const parsedDate = parseDate(date);
     if (!parsedDate) {
-      Alert.alert('Atenção', 'Data inválida. Use o formato DD/MM/AAAA.');
+      Alert.alert('Atenção', 'Data inválida.\nUse o formato DD/MM/AAAA.');
       return;
     }
 
@@ -223,13 +227,22 @@ export default function AddFuelLogScreen({ route, navigation }) {
           {/* Data (menos destaque) */}
           <Text style={[styles.fieldLabel, { marginTop: 20 }]}>Data</Text>
           <TextInput
-            style={styles.dateInput}
+            style={[styles.dateInput, dateState.invalid && styles.dateInputError]}
             placeholder="DD/MM/AAAA"
             value={date}
-            onChangeText={setDate}
+            onChangeText={(value) => setDate(maskDate(value))}
             keyboardType="numeric"
             maxLength={10}
           />
+          <Text
+            style={[
+              styles.dateHelpText,
+              dateState.tone === 'error' && styles.dateHelpTextError,
+              dateState.tone === 'success' && styles.dateHelpTextSuccess,
+            ]}
+          >
+            {dateState.message}
+          </Text>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -369,6 +382,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: '#fff',
     color: '#475569',
+  },
+  dateInputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  dateHelpText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 8,
+  },
+  dateHelpTextError: {
+    color: '#dc2626',
+  },
+  dateHelpTextSuccess: {
+    color: '#16a34a',
   },
 
   footer: {
